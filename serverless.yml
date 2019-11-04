@@ -29,8 +29,14 @@ functions:
           path: /states/start
           method: get
           cors: true
+    package:
+      exclude:
+        - FinalState.js
   fnFinalState:
     handler: FinalState.execute
+    package:
+      exclude:
+        - StartState.js
 
 stepFunctions:
   stateMachines:
