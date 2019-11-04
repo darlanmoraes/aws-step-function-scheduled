@@ -1,0 +1,51 @@
+service: ${env:SERVICE_NAME}
+
+provider:
+  name: aws
+  runtime: nodejs10.x
+  stage: ${env:ENV}
+  region: sa-east-1
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - "states:*"
+      Resource: "*"
+  environment:
+    STATE_MACHINE: arn:aws:states:#{AWS::Region}:#{AWS::AccountId}:stateMachine:DelayStepMachine
+
+package:
+  individually: true
+  excludeDevDependencies: true
+
+plugins:
+  - serverless-pseudo-parameters
+  - serverless-step-functions
+
+functions:
+  fnStartState:
+    handler: StartState.execute
+    events:
+      - http:
+          path: /states/start
+          method: get
+          cors: true
+  fnFinalState:
+    handler: FinalState.execute
+
+stepFunctions:
+  stateMachines:
+    DelayStepMachine:
+      name: DelayStepMachine
+      definition:
+        Comment: "An example of the Amazon States Language using wait states"
+        StartAt: StartState
+        States:
+          StartState:
+            Type: Wait
+            TimestampPath: "$.timestamp"
+            Next: FinalState
+          FinalState:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [fnFinalState, Arn]
+            End: true
